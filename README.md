@@ -8,6 +8,8 @@
 
 ​		This method mainly based on DDGI. We use Cascade-Global-SDF and Voxelization to replace hardware ray tracing. We also did a lot to reduce overhead.
 
+## Overview
+
 
 
 ## Features & Optimizations
@@ -31,9 +33,19 @@ It's cost a lost time to recompute all the probe data when the camera moved. As 
 
 ![image-20240617150515182](https://raw.githubusercontent.com/Chillstepp/MyPicBed/master/master/image-20240617150515182.png)
 
-```c++
-(probeCoords + ProbesCounts + ProbesScrollOffsets[cascadeIndex].xyz) % ProbesCounts
-```
+- The center of the original probe volume is referred to as the Scroll Anchor, and the probe volume will also update its position as the camera moves:
+
+  - When there is an overlapping region (purple area), in order to reuse the overlapping area, after the Probe Volume moves, record the ProbesScrollOffsets. When sampling a probe in the new probe volume, we will add the ProbesScrollOffsets to the probe coordinates：
+
+    ```c++
+    (probeCoords + ProbesCounts + ProbesScrollOffsets[cascadeIndex].xyz) % ProbesCounts
+    ```
+
+    ![image-20240619141448349](https://raw.githubusercontent.com/Chillstepp/MyPicBed/master/master/image-20240619141448349.png)
+
+- When the probe volume moves away from the probe volume at the Scroll Anchor and they are no longer overlapping, we will reset the position of the Scroll Anchor.
+
+
 
 
 
@@ -49,25 +61,54 @@ It's cost a lost time to recompute all the probe data when the camera moved. As 
 
 
 
-### Classify
+### Classify/Progressive Probe Update(Probe budget)
 
-Classify just likes a state machine. There are four states of probe: 
+> This part is significant to speed up DDGI. You can read `Classify.usf` to get more information.
+
+​	Probes may be stuck inside geometry (even after relocation attempts to move them), exist in spaces without nearby geometry, or be far enough outside the play space that they are never relevant. In these cases, there is no need to spend time tracing and shading rays or updating the irradiance and distance texture atlases for these probes.
+
+​	We considered a lot of situations, and we **add two more probe state** to state classification.
+
+​	Classify just likes a state machine, it controls each probe should be updated, sampled or not. There are four states of probe in our method:  
 
 ```c++
 #define DDGI_PROBE_STATE_INACTIVE 0
 #define DDGI_PROBE_STATE_ACTIVATED 1
 #define DDGI_PROBE_STATE_ACTIVE 2
-#define DDGI_PROBE_STATE_SLEEP 3 // Stop Tracing Rays, but can be sampled
+#define DDGI_PROBE_STATE_SLEEP 3
 ```
 
-- DDGI_PROBE_STATE_INACTIVE
+- DDGI_PROBE_STATE_INACTIVE: Not a valid probe to be sampled, not to update it either. 
   - Probe is too far from geometry. 
+  - Probe was stuck inside geometry (even after relocation attempts to move them).
+- DDGI_PROBE_STATE_ACTIVATED: When updated this probe, we will mark it as activated.
+  - It means we recently activated it and it's very important recently. So we will try update it (even it is in camera backface).
+
+- DDGI_PROBE_STATE_ACTIVE
+  - In order for overhead to be spread evenly,  **probe budget**  was set in one frame. We use rotation request to update a part of probes each frame.Those probes that in request part will be marked as active.
+
+- DDGI_PROBE_STATE_SLEEP: Not update(tracing ray) this probe, but sample it.
+  - In camera backface.
+  - In order for overhead to be spread evenly,  **probe budget**  was set in one frame. We use rotation request to update a part of probes each frame.Those probes that not in request part will be marked as sleep.
+
+
+
+
+![whiteboard_exported_image](https://raw.githubusercontent.com/Chillstepp/MyPicBed/master/master/whiteboard_exported_image.png)
+
+>  In the early days, I only add DDGI_PROBE_STATE_SLEEP for spread overhead evenly and stop update probes that in camera backface. But those probes which was activated still need to be active to get better and faster scene change response.So DDGI_PROBE_STATE_ACTIVATED was also added to probe state machine.
+
+
 
 ### Progressive Frame Update
 
 - We update each cascade probe by `uint64 cascadeFrequencies[] = { 2, 3, 5, 7 };`, which means the `i`th cascade probe will update every `cascadeFrequencies[i]` frame.
 - Our method only updates one cascade per frame. This means that when the frame count can be divided by two or more `cascadeFrequencies`, we will only update the smallest cascade. 
 - You can open `r.rtgi.AlwaysUpdateProbe 1` ,which will update all cascade every frame.
+
+### Ray Tracing Budget
+
+
 
 ### Relocate probe origin when view direction changed (For better view frustum coverage)
 
@@ -91,11 +132,35 @@ There are more probes in frustum after `r.rtgi.RelocateProbeVolumeOriginWhenView
 
 
 
-## Overview
+### SRGB Blend
 
 
 
+### Temporal Filter
 
+
+
+### Clipmap and AABB Scroll are used to reduce Voxelization overhead
+
+## Math Tips
+
+Here are some math tips for you to understand the code better.
+
+### The Fibonacci sphere algorithm
+
+When the probe ray traces to the surface of an object, we can obtain its radiance. Therefore, uniform sampling on the probe is a very important issue. Let's simplify our problem: how evenly distribute n points on a sphere?
+
+​	The Fibonacci sphere algorithm(https://arxiv.org/pdf/0912.4540.pdf) is what we need.
+
+### Wang Hash
+
+![image-20240619144356202](https://raw.githubusercontent.com/Chillstepp/MyPicBed/master/master/image-20240619144356202.png)
+
+### Octahedral mapping
+
+
+
+### Why caculate Irradiance should multiply 1/2
 
 
 
@@ -117,8 +182,11 @@ There are more probes in frustum after `r.rtgi.RelocateProbeVolumeOriginWhenView
 - [The Basics of GPU Voxelization](https://developer.nvidia.com/content/basics-gpu-voxelization) by NVDIA
 - Elmar Eisemann and Xavier Décoret. 2008. Single-pass GPU solid voxelization for real-time applications. In Proceedings of Graphics Interface 2008 (GI '08). Canadian Information Processing Society, CAN, 73–80.
 
-Sparse Distance Field:
+**Sparse Distance Field:**
 
 - SIGGRAPH 2022 Advances in Real-Time Rendering in Games:  [Lumen: Real-time Global Illumination in Unreal Engine 5](https://advances.realtimerendering.com/s2022/index.html#Lumen)
 
 **Others:**
+
+- The Fibonacci sphere algorithm.  https://arxiv.org/pdf/0912.4540.pdf
+- Mark Jarzynski and Marc Olano, Hash Functions for GPU Rendering, *Journal of Computer Graphics Techniques (JCGT)*, vol. 9, no. 3, 21-38, 2020 Available online [http://jcgt.org/published/0009/03/02/](https://jcgt.org/published/0009/03/02/)
