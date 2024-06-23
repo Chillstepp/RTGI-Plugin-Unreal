@@ -256,9 +256,11 @@ float3 exponent = ProbeIrradianceEncodingGamma * 0.5f;
 probeIrradiance = pow(probeIrradiance, exponent);
 ```
 
-When interpolating:
+When interpolating：
 
 $$newValue=[(1-\alpha)*curValue^{\frac1{gamma}}+\alpha*oldValue^{\frac1{gamma}}]^{gamma}$$
+
+
 
 
 ### Indirect Light Scaling
