@@ -146,18 +146,14 @@ This requires the additional recording of certain information, including:
 - $r^2(w):$ The square of the distance from the probe to the closest object visible in the direction of $w$. (Average stored on the hemisphere)
 
 Chebyshev's inequality：
-$$
-P(r>d)\leq\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}\quad(d>\mu)
-$$
+$$P(r>d)\leq\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}\quad(d>\mu)$$
 Where $𝑑$ is the distance from the shading point to the probe, $\mu$ is the mean of the above $𝑟(𝑤)$, and $𝜎^2$ represents the variance of the distance, we can calculate the variance and mean through the following formula:
-$$
-\begin{array}{c}\mu=r(w)\\\sigma^2=r^2(w)-[r(w)]^2\end{array}
-$$
+$$\begin{array}{c}\mu=r(w)\\\sigma^2=r^2(w)-[r(w)]^2\end{array}$$
 $P(r>d)$ represents the probability that there is no occlusion between the probe and the shading point. When $d$ is greater than $\mu$, it is assumed that there is no occlusion, and $P(r>d) = 1$. Otherwise, the probability is calculated according to the formula (assuming the upper limit of Chebyshev inequality can always be reached):
-$$
-P(r>d)=\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}\quad(d>\mu)\\
-P(r>d) = 1\quad(d<=\mu)
-$$
+
+$$P(r>d)=\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}\quad(d>\mu)\\
+P(r>d) = 1\quad(d<=\mu)$$
+
 Finally, the calculated probability will be raised to the power of 3. This is a subjective parameter, equivalent to aiming for a lower probability of light leakage.
 
 ```c++
@@ -240,10 +236,8 @@ As shown in the figure：
 ​	However, sometimes rapid changes in lighting require a quick response from the visuals. Therefore, we also offer a `ProbeChangeThreshold` parameter; if the change exceeds this threshold, it is deemed unnecessary to reuse historical frames or may require an appropriate reduction in historical frame weight.
 
 ​	Lastly, interpolation is conducted using historical frames:
-$$
-newValue=(1-\alpha)*curValue+\alpha*oldValue
-$$
 
+$$newValue=(1-\alpha)*curValue+\alpha*oldValue$$
 
 ### Perception-based exponential encoding
 
@@ -263,9 +257,8 @@ probeIrradiance = pow(probeIrradiance, exponent);
 ```
 
 When interpolating:
-$$
-newValue=[(1-\alpha)*curValue^{\frac1{gamma}}+\alpha*oldValue^{\frac1{gamma}}]^{gamma}
-$$
+
+$$newValue=[(1-\alpha)*curValue^{\frac1{gamma}}+\alpha*oldValue^{\frac1{gamma}}]^{gamma}$$
 
 
 ### Indirect Light Scaling
