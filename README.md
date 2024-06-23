@@ -246,7 +246,7 @@ As shown in the figure：
 
 ​	Lastly, interpolation is conducted using historical frames:
 
-$newValue=(1-\alpha)*curValue+\alpha*oldValue$
+$$ newValue=(1-\alpha)\*curValue+\alpha\*oldValue $$
 
 ### Perception-based exponential encoding
 
@@ -267,7 +267,7 @@ probeIrradiance = pow(probeIrradiance, exponent);
 
 When interpolating：
 
-$newValue=[(1-\alpha)*curValue^{\frac1{gamma}}+\alpha*oldValue^{\frac1{gamma}}]^{gamma}$
+$$ newValue=[(1-\alpha)\*curValue^{\frac1{gamma}}+\alpha\*oldValue^{\frac1{gamma}}]^{gamma} $$
 
 
 
