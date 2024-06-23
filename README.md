@@ -148,12 +148,17 @@ This requires the additional recording of certain information, including:
 Chebyshev's inequality：
 
 $P(r>d)\leq\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}$
+
 Where $𝑑$ is the distance from the shading point to the probe, $\mu$ is the mean of the above $𝑟(𝑤)$, and $𝜎^2$ represents the variance of the distance, we can calculate the variance and mean through the following formula:
+
 $\begin{array}{c}\mu=r(w)\\\sigma^2=r^2(w)-[r(w)]^2\end{array}$
+
 $P(r>d)$ represents the probability that there is no occlusion between the probe and the shading point. When $d$ is greater than $\mu$, it is assumed that there is no occlusion, and $P(r>d) = 1$. Otherwise, the probability is calculated according to the formula (assuming the upper limit of Chebyshev inequality can always be reached):
 
 $P(r>d)=\frac{\sigma^2}{\sigma^2+\left(d-\mu\right)^2}\quad(d>\mu)\\
 P(r>d) = 1\quad(d<=\mu)$
+
+
 
 Finally, the calculated probability will be raised to the power of 3. This is a subjective parameter, equivalent to aiming for a lower probability of light leakage.
 
